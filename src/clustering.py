@@ -1,9 +1,10 @@
+import math
 from sentence_transformers import SentenceTransformer
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 import pandas as pd
 import time
-
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 class IdeaClusterer:
@@ -54,8 +55,10 @@ class IdeaClusterer:
 
         return output
     
+
+    
     # this is essentially a 
-    def label_groups(self):
+    def label_groups(self, top_n=3):
         all_clusters = self.group()
 
         self.label_names = {}
@@ -81,15 +84,79 @@ class IdeaClusterer:
                     if word not in unique_words_all_clusters[i]:
                         unique_words_all_clusters[i].append(word)
 
-
+        tf_score = {}
+        idf_score = {}
+        tfidf_scores = {} 
+        # create the map of matrices 
+        # and create the output dict of int:list[scores]
         for nthCluster in range(self.cluster_count):
-            print(unique_words_all_clusters[nthCluster])
-            print(len(unique_words_all_clusters[nthCluster]))
+            tf_score[nthCluster] = []
+            idf_score[nthCluster] = []
+            tfidf_scores[nthCluster] = {}
 
-    # Will need the list of all unique words in the 
-    def tf_idf():
-        pass
-                
+            for nth_word in range(len(unique_words_all_clusters[nthCluster])):
+                tf_score[nthCluster].append([])
+                idf_score[nthCluster].append(0)
+
+                for doc in range(len(all_clusters[nthCluster])):
+                    tf_score[nthCluster][nth_word].append(self.tf_calc(unique_words_all_clusters[nthCluster][nth_word], all_clusters[nthCluster][doc]))
+
+                    # IDF logic
+                    doc_words = all_clusters[nthCluster][doc].split()   # split once
+                    if unique_words_all_clusters[nthCluster][nth_word] in doc_words:
+                        idf_score[nthCluster][nth_word] += 1
+                idf_score[nthCluster][nth_word] = math.log((len(all_clusters[nthCluster]) + 1) / (1 + idf_score[nthCluster][nth_word])) + 1
+
+                # Combine TF and IDF → TF–IDF per doc for this word
+                idf_val = idf_score[nthCluster][nth_word]
+                tfidf_vals = [tf_val * idf_val for tf_val in tf_score[nthCluster][nth_word]]
+
+                # (optional) aggregate; average is a good default for snippet-length docs
+                N = len(all_clusters[nthCluster]) or 1
+                avg_tfidf = sum(tfidf_vals) / N
+
+                # store per-word score for this cluster
+                word = unique_words_all_clusters[nthCluster][nth_word]
+                tfidf_scores[nthCluster][word] = avg_tfidf
+            
+            # logic to put get the words that have the highest score
+            sorted_words = sorted(tfidf_scores[nthCluster].items(),key=lambda x: x[1], reverse=True)
+            self.label_names[nthCluster] = [w for w, _ in sorted_words[:top_n]]
+            #print(unique_words_all_clusters[nthCluster])
+            #print(len(unique_words_all_clusters[nthCluster]))
+
+        # print(self.label_names)
+        return self.label_names
+        # Will need the list of all unique words in the 
+
+
+    def label_groups_optimized(self, top_n=3):
+        all_clusters = self.group()
+        self.label_names = {}
+
+        for nthCluster, docs in all_clusters.items():
+            if not docs:
+                self.label_names[nthCluster] = []
+                continue
+
+            # Use sklearn's TF–IDF with English stopwords removed
+            vectorizer = TfidfVectorizer(stop_words="english")
+            X = vectorizer.fit_transform(docs)
+
+            # Average TF–IDF score across all docs in this cluster
+            avg_scores = X.mean(axis=0).A1
+            terms = vectorizer.get_feature_names_out()
+
+            # Sort terms by average score
+            top_indices = avg_scores.argsort()[::-1][:top_n]
+            top_terms = [terms[i] for i in top_indices]
+
+            self.label_names[nthCluster] = top_terms
+
+        return self.label_names
+    def tf_calc(self, word, doc):
+        words = doc.split()
+        return words.count(word) / len(words) if len(words) > 0 else 0 
     
               
 
@@ -113,6 +180,9 @@ test.cluster()
 
 test.label_groups()
 
+print(test.group())
+print(test.label_groups())
+print(test.label_groups_optimized())
 print("done")
 
 
