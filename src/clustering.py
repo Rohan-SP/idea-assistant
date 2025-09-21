@@ -169,8 +169,9 @@ print(f"Execution time: {end - start:.4f} seconds")
 
 """
 
-with open("data/ideas.txt") as f:
+with open("data/my_ideas.txt", "r", encoding="utf-8", errors="ignore") as f:
     ideaList = [line.strip().lower() for line in f if line.strip()]
+
 
 # This is assuming that the data from ideaList has been cleaned and is ready to be inputted, for testing purposes it provides a sterile data input
 
@@ -180,7 +181,12 @@ test.cluster()
 
 test.label_groups()
 
-print(test.group())
+groups = test.group()
+# print(groups)
+for i in range(len(groups)):
+    print(i)
+    print(groups[i])
+    print("\n\n")
 print(test.label_groups())
 print(test.label_groups_optimized())
 print("done")
