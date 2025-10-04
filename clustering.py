@@ -22,7 +22,7 @@ class IdeaClusterer:
             normalize_embeddings=True
         )
 
-        self.generator = pipeline("text2text-generation", model="google/flan-t5-large")
+        self.generator = pipeline("text2text-generation", model="google/flan-t5-base")
 
     def re_embed(self, new_ideas):
         self.ideas = new_ideas
@@ -169,7 +169,7 @@ class IdeaClusterer:
     
     def reduce_to_2d(self):
         reducer = umap.UMAP(n_neighbors=5, min_dist=0.2, metric="cosine", random_state=42)
-        self.reduced  = reducer.fit_transform(test.vectors)
+        self.reduced = reducer.fit_transform(self.vectors)
 
     def improve_idea(self, idea: str):
         prompt = f"Suggest one improvement tip for this idea:\n\n{idea}"
@@ -182,14 +182,14 @@ end = time.time()    # end timer
 print(f"Execution time: {end - start:.4f} seconds")
 
 """
-
+"""
 with open("data/ideas.txt", "r", encoding="utf-8", errors="ignore") as f:
     ideaList = [line.strip().lower() for line in f if line.strip()]
 
 
 # This is assuming that the data from ideaList has been cleaned and is ready to be inputted, for testing purposes it provides a sterile data input
 
-test = IdeaClusterer(ideaList)
+test = IdeaClusterer(ideaList)"""
 """
 test.cluster()
 
@@ -236,9 +236,9 @@ plt.xlabel("UMAP-1")
 plt.ylabel("UMAP-2")
 plt.show()
 """
-sample_idea = "Making a cook book"
+"""sample_idea = "Making a cook book"
 
 # Get a tip
 tip = test.improve_idea(sample_idea)
 print("Idea:", sample_idea)
-print("Improvement Tip:", tip)
+print("Improvement Tip:", tip)"""

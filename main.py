@@ -1,10 +1,18 @@
-# main.py
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List, Dict, Any
-from clustering import IdeaClusterer  # put your class in idea_clusterer.py
+from contextlib import asynccontextmanager
+from clustering import IdeaClusterer
 
-app = FastAPI()
+# Lifespan handler
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # startup
+    app.state.clusterer = IdeaClusterer(["placeholder idea"])
+    yield
+    # shutdown (if you ever need cleanup, add here)
+
+app = FastAPI(lifespan=lifespan)
 
 # Request/Response models
 class IdeasRequest(BaseModel):
@@ -13,14 +21,9 @@ class IdeasRequest(BaseModel):
 class SuggestRequest(BaseModel):
     idea: str
 
-@app.on_event("startup")
-def load_model():
-    # initialize once
-    global clusterer
-    clusterer = IdeaClusterer([])
-
 @app.post("/categorize")
 def categorize(req: IdeasRequest) -> Dict[str, Any]:
+    clusterer = app.state.clusterer
     clusterer.re_embed(req.ideas)
     k, score, labels = clusterer.cluster()
     groups = clusterer.group()
@@ -34,5 +37,6 @@ def categorize(req: IdeasRequest) -> Dict[str, Any]:
 
 @app.post("/suggest")
 def suggest(req: SuggestRequest) -> Dict[str, str]:
+    clusterer = app.state.clusterer
     tip = clusterer.improve_idea(req.idea)
     return {"idea": req.idea, "suggestion": tip}
