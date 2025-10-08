@@ -40,3 +40,10 @@ def suggest(req: SuggestRequest) -> Dict[str, str]:
     clusterer = app.state.clusterer
     tip = clusterer.improve_idea(req.idea)
     return {"idea": req.idea, "suggestion": tip}
+
+@app.get("/health")
+def health(prewarm: bool = False) -> Dict[str, str]:
+    if prewarm:
+        # force model load so it's cached in memory
+        _ = app.state.clusterer.improve_idea("Warmup idea")
+    return {"status": "ok"}
